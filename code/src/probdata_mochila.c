@@ -264,7 +264,7 @@ SCIP_RETCODE SCIPprobdataCreate(
    SCIP_CALL( SCIPsetObjIntegral(scip) );
   
    // alloc memory to create vars and cons - it is necessary to probdatacreate(), that will make a copy of them.
-   SCIP_CALL( SCIPallocBufferArray(scip, &conss, 1+I->nS) );
+   SCIP_CALL( SCIPallocBufferArray(scip, &conss, 1+I->nS+1) );
    SCIP_CALL( SCIPallocBufferArray(scip, &vars, I->n+I->nS) ); // aloca memoria para as variaveis xi e yj, para cada item i e para cada forfeit j
    
    ncons=0;
@@ -276,6 +276,11 @@ SCIP_RETCODE SCIPprobdataCreate(
    SCIP_CALL( SCIPaddCons(scip, conss[ncons]) );   
    /*   SCIP_CALL( SCIPreleaseCons(scip, &conss[0]) );*/
    ncons++; /* it must be 1*/
+   
+   SCIP_CALL( SCIPcreateConsBasicLinear (scip, &conss[ncons], "violation_limit", 0, NULL, NULL, -SCIPinfinity(scip), (double) I->k) );
+   SCIP_CALL( SCIPaddCons(scip, conss[ncons]) );   
+   /*   SCIP_CALL( SCIPreleaseCons(scip, &conss[0]) );*/
+   ncons++; /* it must be 1*/
 
    /* create constraint for each forfeit set */
    for(j=0;j<I->nS;j++){
@@ -284,6 +289,8 @@ SCIP_RETCODE SCIPprobdataCreate(
       SCIP_CALL( SCIPaddCons(scip, conss[ncons]) );   
       ncons++;
    }
+
+
    /* create one variable xi for each item i */
    for( i = 0; i < I->n; nvars++, ++i )
    {
@@ -315,13 +322,16 @@ SCIP_RETCODE SCIPprobdataCreate(
       SCIP_CALL( SCIPaddVar(scip, var) );
 
       /* add variable to the forfeit set constraint */
-      SCIP_CALL( SCIPaddCoefLinear(scip, conss[1+j], var, -1.0) );
+      SCIP_CALL( SCIPaddCoefLinear(scip, conss[2+j], var, -1.0) );
+
+      /* add variable to the violation limit constraint */
+      SCIP_CALL( SCIPaddCoefLinear(scip, conss[1], var, 1.0) );
    }
    for( j = 0; j < I->nS; ++j )
    {
       for(i=0; i<I->S[j].n;i++){
          /* add item variable to the forfeit set constraint */
-         SCIP_CALL( SCIPaddCoefLinear(scip, conss[1+j], vars[I->S[j].items[i]], 1.0) );
+         SCIP_CALL( SCIPaddCoefLinear(scip, conss[2+j], vars[I->S[j].items[i]], 1.0) );
       }
    }
 
