@@ -134,7 +134,7 @@ int aleatoria(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
    int found, infeasible, nInSolution;
    unsigned int stored;
    int nvars;
-   int *covered, n, custo, nCovered, *cand, nCands, selected, s, *forfeit, valor, violations;
+   int *covered, n, custo, nCovered, *cand, nCands, selected, s, *forfeit, valor, violations, pre_violations;
    SCIP_VAR *var, **solution, **varlist;
    //  SCIP* scip_cp;
    SCIP_Real bestUb;
@@ -183,6 +183,9 @@ int aleatoria(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
           for(j=0;j<I->item[i].nsets;j++){
              ii = I->item[i].set[j];
              forfeit[ii]++; // update total of items selected from the forfeit set
+             if(forfeit[ii] >= I->S[ii].h){
+               violations++;
+             }
           }
           // update solution value
           custo += I->item[i].value;
@@ -216,15 +219,17 @@ int aleatoria(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
       if(!covered[selected] && I->item[selected].weight <= residual){
          // compute the real value
          valor = I->item[selected].value;
+         pre_violations = 0;
          for(j=0;j<I->item[selected].nsets;j++){
             ii = I->item[selected].set[j];
             // update the value if the item will exceed the maximum allowed for the set
             if(forfeit[ii] >= I->S[ii].h){
                valor -= I->S[ii].d;
+               pre_violations++;
             }
          }
          // if it worths
-         if(valor>0){
+         if(valor>0 && violations + pre_violations<=I->k){
             var = varlist[selected];
             // include selected var in the solution
             solution[nInSolution++]=var;
@@ -234,6 +239,7 @@ int aleatoria(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
             covered[selected] = 1;
             // update the solution value
             custo += valor;
+            violations += pre_violations;
             // update the total of elements in each set that are already in the solution
             for(j=0;j<I->item[selected].nsets;j++){
                ii = I->item[selected].set[j];
