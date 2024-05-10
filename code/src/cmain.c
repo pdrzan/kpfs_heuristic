@@ -36,7 +36,7 @@
 #include "probdata_mochila.h"
 #include "parameters_mochila.h"
 //#include "heur_myrounding.h"
-//#include "heur_gulosa.h"
+#include "heur_gulosa.h"
 #include "heur_aleatoria.h"
 const char* output_path;
 const char* current_path = ".";
@@ -151,8 +151,8 @@ SCIP_RETCODE configScip(
    // active heuristic of rounding
    /*   if(param.heur_rounding)
         SCIP_CALL( SCIPincludeHeurMyRounding(scip) );*/
-   /*   if(param.heur_gulosa)
-        SCIP_CALL( SCIPincludeHeurGulosa(scip) ); */
+   if(param.heur_gulosa)
+   SCIP_CALL( SCIPincludeHeurGulosa(scip) ); 
    if(param.heur_aleatoria)
    SCIP_CALL( SCIPincludeHeurAleatoria(scip) );
    
