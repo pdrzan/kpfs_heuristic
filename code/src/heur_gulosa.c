@@ -75,12 +75,12 @@ int gulosa(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
    int found, infeasible, nInSolution;
    unsigned int stored;
    int nvars;
-   int n, custo, nCovered, *cand, nCands, selected, s, *forfeit, valor, violations, pre_violations;
+   int n, custo, *covered, *cand, nCands, selected, *forfeit, valor, violations, pre_violations;
    itemType *cands;
    SCIP_VAR *var, **solution, **varlist;
    SCIP_Real bestUb;
    SCIP_PROBDATA* probdata;
-   int i, residual, j, peso, nS, ii;
+   int i, residual, j, peso, nS, ii, jj, best, iBest, pre_violationsBest;
    instanceT* I;
    
    probdata=SCIPgetProbData(scip);
@@ -96,7 +96,6 @@ int gulosa(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
    forfeit = (int*) calloc(nS,sizeof(int));
    cand = (int*) malloc(n*sizeof(int));
    nInSolution = 0;
-   nCovered = 0;
    nCands = 0;
    custo = 0;
    residual = I->C;
@@ -104,32 +103,29 @@ int gulosa(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
 
    for(i=0;i<nvars;i++){
       var = varlist[i];
-      if(SCIPvarGetLbLocal(var) > 1.0 - EPSILON){ // var >= 1.0
+      if(SCIPvarGetLbLocal(var) > 1.0 - EPSILON){ 
         if (i<n){
           solution[nInSolution++]=var;
           residual -= I->item[i].weight;
           for(j=0;j<I->item[i].nsets;j++){
              ii = I->item[i].set[j];
-             forfeit[ii]++; // update total of items selected from the forfeit set
+             forfeit[ii]++; 
              if(forfeit[ii] >= I->S[ii].h){
                violations++;
              }
           }
-          // update solution value
           custo += I->item[i].value;
           infeasible = residual < 0?1:0;
         }
         else{
-           // refers to variable v over forfeit set
            j = n - i;
-           // nothing is necessary to do... 
         }
       }
-      else{ // discard items fixed in 0.0
-        if(SCIPvarGetUbLocal(var) < EPSILON){ // var fixed in 0.0
+      else{ 
+        if(SCIPvarGetUbLocal(var) < EPSILON){ 
         }
         else{
-          if (i < n){ // include item i in cand list
+          if (i < n){ 
            cand[nCands++]=i;
           }
         }
@@ -138,6 +134,7 @@ int gulosa(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
    
 
    cands = (itemType *)calloc(nCands, sizeof(itemType));
+   covered = (int *)calloc(nCands, sizeof(int));
    for(i = 0; i < nCands; i++)
    {
      cands[i].weight = I->item[cand[i]].weight;
@@ -145,37 +142,47 @@ int gulosa(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
      cands[i].value = I->item[cand[i]].value;
    }
 
-   qsort(cands, nCands, sizeof(itemType), itemComparator);
    
-   for(i = 0; i < nCands; i++)
+   for(i = 0; i < nCands && residual > 0; i++)
    {
-     if(cands[i].weight <= residual)
+     best = 0;
+     iBest = 0;
+     for(j = 0; j < nCands; j++)
      {
-       valor = cands[i].value;
-       selected = cands[i].label;
-       pre_violations = 0;
-       for(j=0;j<I->item[selected].nsets;j++)
+       if(cands[j].weight <= residual)
        {
-         ii = I->item[selected].set[j];
-         if(forfeit[ii] >= I->S[ii].h)
+         valor = cands[j].value;
+         selected = cands[j].label;
+         pre_violations = 0;
+         for(jj=0;jj<I->item[selected].nsets;jj++)
          {
-           valor -= I->S[ii].d;
-           pre_violations++;
+           ii = I->item[selected].set[jj];
+           if(forfeit[ii] >= I->S[ii].h)
+           {
+             valor -= I->S[ii].d;
+             pre_violations++;
+           }
          }
        }
-       if(valor>0 && violations + pre_violations<=I->k)
+       if(valor > best && violations + pre_violations <= I->k)
        {
-         var = varlist[selected];
-         solution[nInSolution++]=var;
-         residual -= I->item[selected].weight;
-         custo += valor;
-         violations += pre_violations;
-         for(j=0;j<I->item[selected].nsets;j++){
-           ii = I->item[selected].set[j];
-           forfeit[ii]++;
-         }
-         infeasible = residual<0?1:0;
+         best = valor;
+         iBest = selected;
+         pre_violationsBest = pre_violations;
        }
+     }
+     if(best > 0)
+     {
+       var = varlist[iBest];
+       solution[nInSolution++]=var;
+       residual -= I->item[iBest].weight;
+       custo += best;
+       violations += pre_violationsBest;
+       for(j=0;j<I->item[iBest].nsets;j++){
+         ii = I->item[iBest].set[j];
+         forfeit[ii]++;
+       }
+     infeasible = residual<0?1:0;
      }
    }
    if(!infeasible){
