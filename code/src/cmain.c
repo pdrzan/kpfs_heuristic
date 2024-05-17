@@ -402,7 +402,7 @@ void printSol(SCIP* scip, char* outputname)
    SCIP_VAR** vars;
    SCIP_Real solval;
    FILE *file;
-   int v;//, nvars;
+   int v, n, nS, i, ii, j, valor_itens, valor_penalidades, peso, n_transportados, violations, *forfeit;//, nvars;
    instanceT* I;
    char filename[SCIP_MAXSTRLEN];
    struct tm * ct;
@@ -426,24 +426,54 @@ void printSol(SCIP* scip, char* outputname)
        printf("\nProblem to create solution file: %s", filename);
        return;
      } 
-   fprintf(file, "\nValue: %lf\nItems: ", -SCIPsolGetOrigObj(bestSolution));
+   
+   n = I->n;
+   nS = I->nS;
+   valor_itens= 0;
+   valor_penalidades = 0;
+   peso = 0;
+   n_transportados = 0;
+   violations = 0;
+   forfeit = (int*) calloc(nS,sizeof(int));
+   
+
+   for( i=0; i< I->n; i++ ){
+    solval = SCIPgetSolVal(scip, bestSolution, vars[i]);
+      if( solval > EPSILON ){
+        n_transportados++;
+        peso += I->item[i].weight;
+        valor_itens += I->item[i].value;
+        for(j=0;j<I->item[i].nsets;j++){
+            ii = I->item[i].set[j];
+            if(forfeit[ii] >= I->S[ii].h){
+              valor_penalidades += I->S[ii].d;
+              violations++;
+            }
+            forfeit[ii]++; 
+        }
+      }
+   }
+
+   fprintf(file, "%.0f %d %d %d %d %d\n", -SCIPsolGetOrigObj(bestSolution),valor_itens,valor_penalidades,peso,n_transportados,violations);
 
    for( v=0; v< I->n; v++ )
      {
        solval = SCIPgetSolVal(scip, bestSolution, vars[v]);
        if( solval > EPSILON )
-	 {
-	   fprintf(file, "item %d ", I->item[v].label);
-	 }
+       {
+         //  fprintf(file, "%d ", I->item[v].label);
+         fprintf(file, "%d ", v+1);
+       }
      }
 
    fprintf(file, "\n");
    //
-   fprintf(file, "Parameters settings file=%s\n", param.parameter_stamp);
-   fprintf(file, "Instance file=%s\n", SCIPgetProbName(scip));
-   ct = localtime(&t);
-   fprintf(file, "Date=%d-%.2d-%.2d\nTime=%.2d:%.2d:%.2d\n", ct->tm_year+1900, ct->tm_mon, ct->tm_mday, ct->tm_hour, ct->tm_min, ct->tm_sec);
+  //  fprintf(file, "Parameters settings file=%s\n", param.parameter_stamp);
+  //  fprintf(file, "Instance file=%s\n", SCIPgetProbName(scip));
+  //  ct = localtime(&t);
+  //  fprintf(file, "Date=%d-%.2d-%.2d\nTime=%.2d:%.2d:%.2d\n", ct->tm_year+1900, ct->tm_mon, ct->tm_mday, ct->tm_hour, ct->tm_min, ct->tm_sec);
    fclose(file);
+   free(forfeit);
 }
 
 void removePath(char* fullfilename, char** filename)

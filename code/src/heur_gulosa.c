@@ -110,7 +110,8 @@ int gulosa(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
           for(j=0;j<I->item[i].nsets;j++){
              ii = I->item[i].set[j];
              forfeit[ii]++; 
-             if(forfeit[ii] >= I->S[ii].h){
+            //  if(forfeit[ii] >= I->S[ii].h){
+             if(forfeit[ii] > I->S[ii].h){
                violations++;
              }
           }
