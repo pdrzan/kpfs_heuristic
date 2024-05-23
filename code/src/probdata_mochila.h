@@ -58,7 +58,9 @@ extern
 SCIP_RETCODE SCIPprobdataCreate(
    SCIP*                 scip,               /**< SCIP data structure */
    const char*           probname,           /**< problem name */
-   instanceT*            I                   /**< instance of K-coloring */
+   instanceT*            I,                   /**< instance */
+   int                   relaxed,            /**< should be relaxed? */
+   int*                  fixed               /**< vector of fixed items */
    );
 
 /** adds given variable to the problem data */

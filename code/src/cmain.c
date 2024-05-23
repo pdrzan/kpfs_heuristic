@@ -32,12 +32,15 @@
 
 #include "scip/scip.h"
 #include "scip/scipdefplugins.h"
+#include "scip/heur_alns.h"
 #include "problem.h"
 #include "probdata_mochila.h"
 #include "parameters_mochila.h"
 //#include "heur_myrounding.h"
 #include "heur_gulosa.h"
 #include "heur_aleatoria.h"
+#include "heur_lns.h"
+#include "heur_rf.h"
 const char* output_path;
 const char* current_path = ".";
 //
@@ -47,7 +50,7 @@ void removePath(char* fullfilename, char** filename);
 void configOutputName(char* name, char* instance_filename, char* program);
 SCIP_RETCODE printStatistic(SCIP* scip, double time, char* outputname);
 void printSol(SCIP* scip, char* outputname);
-SCIP_RETCODE configScip(SCIP** pscip);
+SCIP_RETCODE configScip(SCIP** pscip, parametersT param);
 //
 SCIP_RETCODE printStatistic(SCIP* scip, double time, char* outputname)
 {
@@ -125,7 +128,8 @@ SCIP_RETCODE printStatistic(SCIP* scip, double time, char* outputname)
  * creates a SCIP instance with default plugins, and set SCIP parameters 
  */
 SCIP_RETCODE configScip(
-   SCIP** pscip
+   SCIP** pscip,
+   parametersT param
    )
 {
    SCIP* scip = NULL;
@@ -148,14 +152,16 @@ SCIP_RETCODE configScip(
    SCIP_CALL( SCIPsetRealParam(scip, "limits/time", param.time_limit) );
    // for only root, use 1
    SCIP_CALL( SCIPsetLongintParam(scip, "limits/nodes", param.nodes_limit) );
-   // active heuristic of rounding
-   /*   if(param.heur_rounding)
-        SCIP_CALL( SCIPincludeHeurMyRounding(scip) );*/
-   if(param.heur_gulosa)
-   SCIP_CALL( SCIPincludeHeurGulosa(scip) ); 
+   // active heuristics callback
+   if(param.heur_rf)
+     SCIP_CALL( SCIPincludeHeurRf(scip) );   
+   if(param.heur_lns == 1)
+     SCIP_CALL( SCIPincludeHeurLns(scip) );
    if(param.heur_aleatoria)
-   SCIP_CALL( SCIPincludeHeurAleatoria(scip) );
-   
+     SCIP_CALL(SCIPincludeHeurAleatoria(scip));
+   if(param.heur_gulosa)
+     SCIP_CALL(SCIPincludeHeurGulosa(scip));
+
    *pscip = scip;
    return SCIP_OKAY;
 }
@@ -177,7 +183,7 @@ int setParameters(int argc, char** argv, parametersT* pparam)
     double ddefault;    
   } settingsT;
 
-  enum {time_limit,display_freq,nodes_limit,param_stamp, param_output_path, heur_rounding, heur_round_freq, heur_round_depth, heur_round_freqofs, heur_gulosa, heur_aleatoria, total_parameters};
+  enum {time_limit,display_freq,nodes_limit,param_stamp, param_output_path, heur_rounding, heur_round_freq, heur_round_depth, heur_round_freqofs, heur_gulosa, heur_aleatoria, heur_lns, heur_rf, rf_time, rf_perc, lns_perc, lns_time, total_parameters};
 
   settingsT parameters[]={
             {"time limit", "--time", &(param.time_limit), INT, 0, 7200, 0,0,1800,0},
@@ -190,7 +196,13 @@ int setParameters(int argc, char** argv, parametersT* pparam)
             {"heur round maxdepth", "--heur_round_depth", &(param.heur_round_maxdepth), INT, -1,MAXINT,0,0,-1,0},
             {"heur round freqofs", "--heur_round_freqofs", &(param.heur_round_freqofs), INT, 0,MAXINT,0,0,0,0},
             {"heur gulosa", "--heur_gulosa", &(param.heur_gulosa), INT, 0,1,0,0,0,0},
-            {"heur aleatoria", "--heur_aleatoria", &(param.heur_aleatoria), INT, 0,1,0,0,0,0}
+            {"heur aleatoria", "--heur_aleatoria", &(param.heur_aleatoria), INT, 0,1,0,0,0,0},
+            {"heur lns", "--heur_lns", &(param.heur_lns), INT, 0,1,0,0,0,0},
+            {"lns perc", "--lns_perc", &(param.lns_perc), INT, 0,100,0,0,30,0},
+            {"lns time", "--lns_time", &(param.lns_time), INT, 0, 7200, 0,0,1800,0},
+            {"heur rf", "--heur_rf", &(param.heur_rf), INT, 0,1,0,0,0,0},
+            {"rf time", "--rf_time", &(param.rf_time), INT, 0, 7200, 0,0,1800,0},
+            {"rf perc", "--rf_perc", &(param.rf_perc), INT, 0,100,0,0,30,0},
   };
   int i, j, ivalue, error;
   double dvalue;
@@ -515,11 +527,11 @@ int main(int argc, char **argv)
     printf("\nProblem to read instance file %s\n", argv[1]);
     return 1;
   }
-  printInstance(in);
+  // printInstance(in);
   // create scip and set scip configurations
-  configScip(&scip);
+  configScip(&scip, param);
   // load problem into scip
-  if(!loadProblem(scip,argv[1],in)){
+  if(!loadProblem(scip,argv[1],in,1,NULL)){
     printf("\nProblem to load instance problem\n");
     return 1;
   }

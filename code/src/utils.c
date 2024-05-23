@@ -12,14 +12,14 @@ int RandomInteger(int low, int high)
 }
 
 /* put your local methods here, and declare them static */
-SCIP_RETCODE SCIPtrySolMine(SCIP* scip, SCIP_SOL* sol, SCIP_Bool printreason, SCIP_Bool checkbounds, SCIP_Bool checkintegrality, SCIP_Bool checklprows, SCIP_Bool *stored)
-{
-#if (defined SCIP_VERSION_MAJOR)  ||  (SCIP_VERSION_MAJOR==6)
-   return SCIPtrySol(scip,sol, TRUE,printreason,checkbounds,checkintegrality,checklprows,stored);
-#else
-   return SCIPtrySol(scip,sol,printreason,checkbounds,checkintegrality,checklprows,stored);
-#endif
-}
+// SCIP_RETCODE SCIPtrySolMine(SCIP* scip, SCIP_SOL* sol, SCIP_Bool printreason, SCIP_Bool checkbounds, SCIP_Bool checkintegrality, SCIP_Bool checklprows, SCIP_Bool *stored)
+// {
+// #if (defined SCIP_VERSION_MAJOR)  ||  (SCIP_VERSION_MAJOR==6)
+//    return SCIPtrySol(scip,sol, TRUE,printreason,checkbounds,checkintegrality,checklprows,stored);
+// #else
+//    return SCIPtrySol(scip,sol,printreason,checkbounds,checkintegrality,checklprows,stored);
+// #endif
+// }
 
 // Função auxiliar de comparacao para o qsort
 int comparador(const void *valor1, const void *valor2)
@@ -37,5 +37,3 @@ int comparador(const void *valor1, const void *valor2)
     return -1;
   }
 }
-
-

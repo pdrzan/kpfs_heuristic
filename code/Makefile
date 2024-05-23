@@ -2,8 +2,8 @@ TRACE=NDEBUG
 CFLAGS=-D NO_CONFIG_HEADER -D SCIP_VERSION_MAJOR -D$(TRACE) -g -std=c11
 
 
-bin/mochila: bin/cmain.o bin/probdata_mochila.o bin/problem.o bin/heur_problem.o bin/heur_aleatoria.o bin/heur_gulosa.o
-	gcc $(CFLAGS) $(LDFLAGS) -o bin/mochila bin/cmain.o bin/probdata_mochila.o bin/problem.o  bin/heur_problem.o bin/heur_aleatoria.o bin/heur_gulosa.o -lscip -lm
+bin/mochila: bin/cmain.o bin/probdata_mochila.o bin/problem.o bin/heur_problem.o bin/heur_aleatoria.o bin/heur_gulosa.o bin/heur_lns.o bin/heur_rf.o bin/utils.o
+	gcc $(CFLAGS) $(LDFLAGS) -o bin/mochila bin/cmain.o bin/probdata_mochila.o bin/problem.o  bin/heur_problem.o bin/heur_aleatoria.o bin/heur_gulosa.o bin/heur_lns.o bin/heur_rf.o bin/utils.o -lscip -lm
 
 bin/cmain.o: src/cmain.c
 	gcc $(CFLAGS) -c -o bin/cmain.o src/cmain.c
@@ -20,9 +20,18 @@ bin/heur_aleatoria.o: src/heur_aleatoria.c src/heur_aleatoria.h
 bin/heur_gulosa.o: src/heur_gulosa.c src/heur_gulosa.h
 	gcc $(CFLAGS) -c -o bin/heur_gulosa.o src/heur_gulosa.c
 
+bin/heur_rf.o: src/heur_rf.c src/heur_rf.h
+	gcc $(CFLAGS) -c -o bin/heur_rf.o src/heur_rf.c
+
+bin/heur_lns.o: src/heur_lns.c src/heur_lns.h
+	gcc $(CFLAGS) -c -o bin/heur_lns.o src/heur_lns.c
+
 bin/heur_problem.o: src/heur_problem.c src/heur_problem.h
 	gcc $(CFLAGS) -c -o bin/heur_problem.o src/heur_problem.c
 
+bin/utils.o: src/utils.c src/utils.h
+	gcc $(CFLAGS) -c -o bin/utils.o src/utils.c
+	
 .PHONY: clean
 
 clean:

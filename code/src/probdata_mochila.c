@@ -234,7 +234,9 @@ SCIP_DECL_PROBEXITSOL(probexitsolMochila)
 SCIP_RETCODE SCIPprobdataCreate(
    SCIP*                 scip,               /**< SCIP data structure */
    const char*           probname,           /**< problem name */
-   instanceT*            I                   /**< instance of knapsack */
+   instanceT*            I,                   /**< instance */
+   int                   relaxed,            /**< should be relaxed? */
+   int*                  fixed               /**< vector of fixed items */
    )
 {
    SCIP_PROBDATA* probdata;
@@ -245,6 +247,7 @@ SCIP_RETCODE SCIPprobdataCreate(
    int i, j;
    int ncons;
    int nvars;
+   double lbvar, ubvar;
    
    assert(scip != NULL);
 
@@ -295,6 +298,21 @@ SCIP_RETCODE SCIPprobdataCreate(
    for( i = 0; i < I->n; nvars++, ++i )
    {
       (void) SCIPsnprintf(name, SCIP_MAXSTRLEN, "x_%d", i);
+      if(!fixed){
+         lbvar = 0.0;
+         ubvar = 1.0;
+      }
+      else{
+         lbvar = fixed[i]==1?1.0:0.0; // if (fixed[i]==1) { lb=1.0 e ub = 1.0 }
+         ubvar = fixed[i]==-1?0.0:1.0; // if(fixed[i]==-1) { lb = 0.0 e ub = 0.0 }
+      }
+      /* create a basic variable object */
+      if(!relaxed){
+         SCIP_CALL( SCIPcreateVarBasic(scip, &var, name, lbvar, ubvar, (double) I->item[i].value, SCIP_VARTYPE_BINARY) );
+      }
+      else{
+         SCIP_CALL( SCIPcreateVarBasic(scip, &var, name, lbvar, ubvar, (double) I->item[i].value, SCIP_VARTYPE_CONTINUOUS) );
+      }
       /* create a basic variable object */
       SCIP_CALL( SCIPcreateVarBasic(scip, &var, name, 0.0, 1.0, (double) I->item[i].value, SCIP_VARTYPE_BINARY) );
       assert(var != NULL);

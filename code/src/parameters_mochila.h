@@ -19,6 +19,12 @@ typedef struct{
 
    int heur_gulosa;
    int heur_aleatoria;
+   int heur_lns;
+   int heur_rf;
+   int lns_perc;
+   int lns_time;
+   int rf_perc;
+   int rf_time;
 } parametersT;
 
 int setParameters(int argc, char** argv, parametersT* Param);

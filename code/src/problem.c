@@ -101,11 +101,26 @@ int loadInstance(char* filename, instanceT** I)
   return 1;
 }
 // load instance problem into SCIP
-int loadProblem(SCIP* scip, char* probname, instanceT* I)
+
+   //old version
+
+// int loadProblem(SCIP* scip, char* probname, instanceT* I)
+// {
+//   SCIP_RETCODE ret_code;
+
+//   ret_code = SCIPprobdataCreate(scip, probname, I);
+//   if(ret_code!=SCIP_OKAY)
+//     return 0;
+//   return 1;
+// }
+
+// to be inserted to adapt to lns and relax&fix
+
+int loadProblem(SCIP* scip, char* probname, instanceT* I, int relaxed, int* fixed)
 {
   SCIP_RETCODE ret_code;
 
-  ret_code = SCIPprobdataCreate(scip, probname, I);
+  ret_code = SCIPprobdataCreate(scip, probname, I, relaxed, fixed);
   if(ret_code!=SCIP_OKAY)
     return 0;
   return 1;

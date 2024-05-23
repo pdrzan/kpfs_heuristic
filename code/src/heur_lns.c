@@ -27,7 +27,7 @@
 #include "utils.h"
 #include "heur_lns.h"
 
-//#define DEBUG_LNS 1
+#define DEBUG_LNS 1
 /* configuracao da heuristica */
 #define HEUR_NAME             "lns"
 #define HEUR_DESC             "lns primal heuristic template"
@@ -164,7 +164,12 @@ int lns(SCIP* scip, SCIP_SOL* initsol, SCIP_HEUR* heur)
    
    nFixed = 0;
    custo = 0;
-   capacRes = I->C[0];
+   
+   //old version
+   //capacRes = I->C[0];
+
+   //actual
+   capacRes = I->C;
    // aloca candidatos
    cand = (itemType*)malloc(sizeof(itemType)*I->n);
    fixed = (int*)calloc(I->n, sizeof(int)); // fixed[i]=0, if item i is not fixed, fixed[i]=1 if item i is fixed in 1.0, fixed[i]=-1 if item i is fixed in 0.
@@ -197,16 +202,19 @@ int lns(SCIP* scip, SCIP_SOL* initsol, SCIP_HEUR* heur)
      if(valor > EPSILON && !fixed[i]){
        fixed[i]=1;
        cand[nCands].label = i;
-       cand[nCands++].value = -(I->item[i].weight);
+       cand[nCands++].value = -(I->item[i].value);
+       cand[nCands++].weight = -(I->item[i].weight);
        capacRes -= I->item[i].weight;
     }
   }
   
   // Decide quem sairá da solução com base no peso de cada item
-  qsort(cand, nCands, sizeof(itemType), comparador); // Ordena o vetor com base no peso dos itens selecionados
-  toRemove= nCands*(param.lns_perc); // calcula total a ser destruida
-#ifdef DEBUG
-  printf("\nporcDestroy=%lf total a destruir=%d total de candidatos=%d\n", param.lns_perc, toRemove, nCands);
+  qsort(cand, nCands, sizeof(itemType), comparador);
+  toRemove= nCands*(param.lns_perc*0.01); // calcula total a ser destruida
+  //toRemove= nCands*(0.3); 
+
+#ifdef DEBUG_LNS
+  printf("\nporcDestroy=%d total a destruir=%d total de candidatos=%d\n", param.lns_perc, toRemove, nCands);
 #endif
   perda = 0; 
   nRemoved = 0;
@@ -214,14 +222,14 @@ int lns(SCIP* scip, SCIP_SOL* initsol, SCIP_HEUR* heur)
     ii = cand[i].label;
     capacRes += I->item[ii].weight;
     perda += I->item[ii].value;
-#ifdef DEBUG
+#ifdef DEBUG_LNS
     printf("\nRemove %d (peso=%d valor=%d) da mochila (capac residual=%d)", I->item[ii].label, I->item[ii].weight, I->item[ii].value, capacRes);
 #endif
     fixed[ii]=0;
     nRemoved++;
   }
 
-#ifdef DEBUG
+#ifdef DEBUG_LNS
   printf("\nDestrui %.2lf%% (equivalente a um valor = %d)\n", (100.0*nRemoved/nCands), perda);
 #endif
 
@@ -231,13 +239,15 @@ int lns(SCIP* scip, SCIP_SOL* initsol, SCIP_HEUR* heur)
   lnsparam.nodes_limit = -1;
   lnsparam.heur_rf = 0;
   lnsparam.heur_lns = 0;
+  lnsparam.heur_aleatoria = 1;
+  lnsparam.heur_gulosa = 1;
   configScip(&subscip, lnsparam);
   /* disable output to console */
   SCIP_CALL( SCIPsetIntParam(subscip, "display/verblevel", 0) );
   
   // carga do lp
   // load problem into scip
-  if(!loadProblem(subscip, "lns", I, 0, fixed)){
+  if(!loadProblem(subscip, "lns", I, 1, fixed)){
      printf("\nProblem to load instance problem\n");
      return -1;
   }
@@ -264,7 +274,7 @@ int lns(SCIP* scip, SCIP_SOL* initsol, SCIP_HEUR* heur)
   lnsZ = SCIPgetPrimalbound(subscip); // o.f. for the solution found by LNS
   z = SCIPsolGetOrigObj(initsol); // objective function for the initial solution 
   if (lnsZ > z + EPSILON){
-#ifdef DEBUG
+#ifdef DEBUG_LNS
      printf("\nSolucao do LNS:");
 #endif
      /* create SCIP solution structure sol */
@@ -276,7 +286,7 @@ int lns(SCIP* scip, SCIP_SOL* initsol, SCIP_HEUR* heur)
         if(valor>EPSILON){
           // set found solution in sol (for original problem)
           SCIP_CALL( SCIPsetSolVal(scip, sol, vars[i], 1.0) );
-#ifdef DEBUG
+#ifdef DEBUG_LNS
           printf("\nItem %d (peso=%d valor=%d)", I->item[i].label, I->item[i].weight, I->item[i].value);
 #endif
           nInSolution++;
@@ -290,7 +300,7 @@ int lns(SCIP* scip, SCIP_SOL* initsol, SCIP_HEUR* heur)
      printf("\ninfeasible=%d value = %lf > bestUb = %lf? %d\n\n", infeasible, lnsZ, bestUb, lnsZ > bestUb + EPSILON);
 #endif
      if(lnsZ > bestUb + EPSILON){
-#ifdef DEBUG
+#ifdef DEBUG_LNS
       printf("\nBest solution found...\n");
       SCIP_CALL( SCIPprintSol(scip, sol, NULL, FALSE) );
 #endif

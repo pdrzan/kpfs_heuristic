@@ -27,7 +27,7 @@
 #include "utils.h"
 #include "heur_rf.h"
 
-//#define DEBUG_RF 1
+#define DEBUG_RF 1
 /* configuracao da heuristica */
 #define HEUR_NAME             "rf"
 #define HEUR_DESC             "rf primal heuristic template"
@@ -172,7 +172,7 @@ int rf(SCIP* scip, SCIP_SOL** sol, SCIP_HEUR* heur)
    nInSolution = 0;
    nFixed = 0;
    custo = 0;
-   capacRes = I->C[0];   
+   capacRes = I->C;   
    // aloca candidatos
    cand = (itemType*)malloc(sizeof(itemType)*I->n);
    fixed = (int*)calloc(I->n, sizeof(int)); // fixed[i]=0, if item i is not fixed, fixed[i]=1 if item i is fixed in 1.0, fixed[i]=-1 if item i is fixed in 0.

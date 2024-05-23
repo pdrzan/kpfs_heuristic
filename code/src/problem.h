@@ -36,5 +36,5 @@ void printInstance(instanceT* I);
 // load instance from a file
 int loadInstance(char* filename, instanceT** I);
 // load instance problem into SCIP
-int loadProblem(SCIP* scip, char* probname, instanceT* in);
+int loadProblem(SCIP* scip, char* probname, instanceT* in, int, int*);
 #endif
